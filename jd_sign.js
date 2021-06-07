@@ -13,6 +13,8 @@ const cookie = process.env.JD_COOKIE
 const dual_cookie = process.env.JD_DUAL_COOKIE
 // Server酱SCKEY
 const push_key = process.env.PUSH_KEY
+// bark key
+const bark_key = process.env.BARK_KEY
 
 // 京东脚本文件
 const js_url = 'https://raw.githubusercontent.com/NobyDa/Script/master/JD-DailyBonus/JD_DailyBonus.js'
@@ -30,24 +32,24 @@ Date.prototype.Format = function (fmt) {
     'H+': this.getHours(),
     'm+': this.getMinutes(),
     's+': this.getSeconds(),
-    'S+': this.getMilliseconds()
-  };
+    'S+': this.getMilliseconds(),
+  }
   if (/(y+)/.test(fmt)) {
-    fmt = fmt.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+    fmt = fmt.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length))
   }
   for (var k in o) {
     if (new RegExp('(' + k + ')').test(fmt)) {
-      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (('00' + o[k]).substr(String(o[k]).length)));
+      fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(String(o[k]).length))
     }
   }
-  return fmt;
-};
+  return fmt
+}
 
 function dateFormat() {
-  var timezone = 8;
-  var GMT_offset = new Date().getTimezoneOffset();
-  var n_Date = new Date().getTime();
-  var t_Date = new Date(n_Date + GMT_offset * 60 * 1000 + timezone * 60 * 60 * 1000);
+  var timezone = 8
+  var GMT_offset = new Date().getTimezoneOffset()
+  var n_Date = new Date().getTime()
+  var t_Date = new Date(n_Date + GMT_offset * 60 * 1000 + timezone * 60 * 60 * 1000)
   console.log(t_Date)
   return t_Date.Format('yyyy.MM.dd')
 }
@@ -62,63 +64,99 @@ function setupCookie() {
 }
 
 function sendNotificationIfNeed() {
-
   if (!push_key) {
-    console.log('执行任务结束!'); return;
+    console.log('执行任务结束!')
+    return
   }
 
   if (!fs.existsSync(result_path)) {
-    console.log('没有执行结果，任务中断!'); return;
+    console.log('没有执行结果，任务中断!')
+    return
   }
 
-  let text = "京东签到_" + dateFormat();
-  let desp = fs.readFileSync(result_path, "utf8")
+  let text = '京东签到_' + dateFormat()
+  let desp = fs.readFileSync(result_path, 'utf8')
 
+  // ftqq(text, desp)
+  bark(text, desp)
+}
+
+function ftqq(text, desp) {
   // 去除末尾的换行
-  let SCKEY = push_key.replace(/[\r\n]/g,"")
+  let SCKEY = push_key.replace(/[\r\n]/g, '')
 
-  const options ={
-    uri:  `https://sc.ftqq.com/${SCKEY}.send`,
+  const options = {
+    uri: `https://sc.ftqq.com/${SCKEY}.send`,
     form: { text, desp },
     json: true,
-    method: 'POST'
+    method: 'POST',
   }
 
-  rp.post(options).then(res=>{
-    const code = res['errno'];
-    if (code == 0) {
-      console.log("通知发送成功，任务结束！")
-    }
-    else {
-      console.log(res);
-      console.log("通知发送失败，任务中断！")
-      fs.writeFileSync(error_path, JSON.stringify(res), 'utf8')
-    }
-  }).catch((err)=>{
-    console.log("通知发送失败，任务中断！")
-    fs.writeFileSync(error_path, err, 'utf8')
-  })
+  rp.post(options)
+    .then((res) => {
+      const code = res['errno']
+      if (code == 0) {
+        console.log('通知发送成功，任务结束！')
+      } else {
+        console.log(res)
+        console.log('通知发送失败，任务中断！')
+        fs.writeFileSync(error_path, JSON.stringify(res), 'utf8')
+      }
+    })
+    .catch((err) => {
+      console.log('通知发送失败，任务中断！')
+      fs.writeFileSync(error_path, err, 'utf8')
+    })
+}
+
+function bark(text, desp) {
+  // 去除末尾的换行
+  let SCKEY = push_key.replace(/[\r\n]/g, '')
+
+  const options = {
+    uri: `https://api.day.app/${bark_key}`,
+    form: { title: text, body: desp },
+    json: true,
+    method: 'POST',
+  }
+
+  rp.post(options)
+    .then((res) => {
+      const code = res['code']
+      if (code == 200) {
+        console.log('通知发送成功，任务结束！')
+      } else {
+        console.log(res)
+        console.log('通知发送失败，任务中断！')
+        fs.writeFileSync(error_path, JSON.stringify(res), 'utf8')
+      }
+    })
+    .catch((err) => {
+      console.log('通知发送失败，任务中断！')
+      fs.writeFileSync(error_path, err, 'utf8')
+    })
 }
 
 function main() {
-
   if (!cookie) {
-    console.log('请配置京东cookie!'); return;
+    console.log('请配置京东cookie!')
+    return
   }
 
   // 1、下载脚本
-  download(js_url, './').then(res=>{
-    // 2、替换cookie
-    setupCookie()
-    // 3、执行脚本
-    exec(`node '${js_path}' >> '${result_path}'`);
-    // 4、发送推送
-    sendNotificationIfNeed() 
-  }).catch((err)=>{
-    console.log('脚本文件下载失败，任务中断！');
-    fs.writeFileSync(error_path, err, 'utf8')
-  })
-
+  download(js_url, './')
+    .then((res) => {
+      // 2、替换cookie
+      setupCookie()
+      // 3、执行脚本
+      exec(`node '${js_path}' >> '${result_path}'`)
+      // 4、发送推送
+      sendNotificationIfNeed()
+    })
+    .catch((err) => {
+      console.log('脚本文件下载失败，任务中断！')
+      fs.writeFileSync(error_path, err, 'utf8')
+    })
 }
 
 main()
