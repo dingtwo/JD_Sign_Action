@@ -76,9 +76,10 @@ function sendNotificationIfNeed() {
 
   let text = '京东签到_' + dateFormat()
   let desp = fs.readFileSync(result_path, 'utf8')
-
-  // ftqq(text, desp)
-  bark(text, desp)
+  const resArr = desp.split('\n')
+  const textArr = resArr.filter((x) => x.startsWith('【'))
+  const content = textArr.join('\n')
+  bark(text, content)
 }
 
 function ftqq(text, desp) {
@@ -111,10 +112,10 @@ function ftqq(text, desp) {
 
 function bark(text, desp) {
   // 去除末尾的换行
-  let SCKEY = push_key.replace(/[\r\n]/g, '')
+  let SCKEY = bark_key.replace(/[\r\n]/g, '')
 
   const options = {
-    uri: `https://api.day.app/${bark_key}`,
+    uri: `https://api.day.app/${SCKEY}`,
     form: { title: text, body: desp },
     json: true,
     method: 'POST',
